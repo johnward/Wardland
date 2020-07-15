@@ -13,7 +13,13 @@
                 "-o",
                 "${fileDirname}/main.exe",
                 "-I/usr/local/include",
-                "-I/usr/include"
+                "-I/usr/local/include/pixman-1",
+                "-I/usr/include",
+                "-DWLR_USE_UNSTABLE",
+                "-lrt",
+                "-lwlroots",
+                "-lwayland-server",
+                "-lxkbcommon"
             ],
             "options": {
                 "cwd": "/usr/bin"

@@ -105,13 +105,15 @@ static void output_frame_notify(struct wl_listener *listener, void *data)
     struct wlr_renderer *renderer = wlr_backend_get_renderer(wlr_output->backend);
 
     wlr_output_attach_render(wlr_output, NULL);
-    wlr_renderer_begin(renderer, 420, 780);
+    wlr_renderer_begin(renderer, wlr_output->width, wlr_output->height);
 
     float color[4] = {1.0, 0, 0, 1.0};
     wlr_renderer_clear(renderer, color);
 
-    //wlr_output_swap_buffers(wlr_output, NULL, NULL);
-    wlr_output_set_damage(wlr_output, NULL);
-    wlr_output_commit(wlr_output);
+    //wlr_output_swap_buffers(wlr_output, NULL, NULL);  // Old API
+
+    /* Conclude rendering and swap the buffers, showing the final frame
+	 * on-screen. */
     wlr_renderer_end(renderer);
+    wlr_output_commit(output->wlr_output);
 }

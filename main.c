@@ -6,6 +6,10 @@
 #include <wlr/backend.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/interfaces/wlr_output.h>
+#include <wlr/types/wlr_gamma_control_v1.h>
+#include <wlr/types/wlr_idle.h>
+#include <wlr/types/wlr_gtk_primary_selection.h>
+#include <wlr/types/wlr_screencopy_v1.h>
 
 static void new_output_notify(struct wl_listener *listener, void *data);
 static void output_destroy_notify(struct wl_listener *listener, void *data);
@@ -50,12 +54,27 @@ int main(int argc, char **argv)
     server.new_output.notify = new_output_notify;
     wl_signal_add(&server.backend->events.new_output, &server.new_output);
 
+    const char *socket = wl_display_add_socket_auto(server.wl_display);
+    assert(socket);
+
     if (!wlr_backend_start(server.backend))
     {
         fprintf(stderr, "Failed to start backend\n");
         wl_display_destroy(server.wl_display);
         return 1;
     }
+
+    printf("Running compositor on wayland display '%s'\n", socket);
+    setenv("WAYLAND_DISPLAY", socket, true);
+
+    // interfaces the client
+    wl_display_init_shm(server.wl_display);
+    wlr_gamma_control_manager_v1_create(server.wl_display);
+    //wlr_screenshooter_create(server.wl_display);
+    wlr_screencopy_manager_v1_create(server.wl_display);
+    //wlr_primary_selection_device_manager_create(server.wl_display);
+    wlr_gtk_primary_selection_device_manager_create(server.wl_display);
+    wlr_idle_create(server.wl_display);
 
     wl_display_run(server.wl_display);
     wl_display_destroy(server.wl_display);
@@ -64,6 +83,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
+// called when a new server is created
 static void new_output_notify(struct wl_listener *listener, void *data)
 {
     struct ward_server *server = wl_container_of(listener, server, new_output);
@@ -86,8 +106,11 @@ static void new_output_notify(struct wl_listener *listener, void *data)
 
     output->frame.notify = output_frame_notify;
     wl_signal_add(&woutput->events.frame, &output->frame);
+
+    wlr_output_create_global(woutput);
 }
 
+// Called when a server is destroyed
 static void output_destroy_notify(struct wl_listener *listener, void *data)
 {
     struct ward_output *output = wl_container_of(listener, output, destroy);
@@ -97,6 +120,7 @@ static void output_destroy_notify(struct wl_listener *listener, void *data)
     free(output);
 }
 
+// Called every frame
 static void output_frame_notify(struct wl_listener *listener, void *data)
 {
     struct ward_output *output = wl_container_of(listener, output, frame);
